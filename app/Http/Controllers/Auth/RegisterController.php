@@ -66,6 +66,28 @@ class RegisterController extends Controller
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => bcrypt($data['password']),
+            'is_admin' => isset($data['is_admin']) ? (int)$data['is_admin'] : 0,
         ]);
     }
+
+
+    public function register(\Illuminate\Http\Request $request)
+    {
+
+        $this->validator($request->all())->validate();
+
+        event(new \Illuminate\Auth\Events\Registered($user = $this->create($request->all())));
+
+        $this->guard()->login($user);
+
+        return $this->registered($request, $user) ?: redirect($this->redirectPath());
+    }
+
+    protected function registered(\Illuminate\Http\Request $request, $user)
+    {
+        $user->generateToken();
+
+        return response()->json(['data' => $user->toArray()], 201);
+    }
+
 }
